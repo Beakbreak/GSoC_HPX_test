@@ -1,0 +1,12 @@
+# This is a generated file and its contents are an internal implementation detail.
+# The download step will be re-executed if anything in this file changes.
+# No other meaning or use of this file is supported.
+
+method=url
+command=/usr/bin/cmake;-P;/home/beakbreak/Desktop/GSoC_HPX_test/build/_deps/hwloc-subbuild/hwloc-populate-prefix/src/hwloc-populate-stamp/download-hwloc-populate.cmake;COMMAND;/usr/bin/cmake;-P;/home/beakbreak/Desktop/GSoC_HPX_test/build/_deps/hwloc-subbuild/hwloc-populate-prefix/src/hwloc-populate-stamp/verify-hwloc-populate.cmake;COMMAND;/usr/bin/cmake;-P;/home/beakbreak/Desktop/GSoC_HPX_test/build/_deps/hwloc-subbuild/hwloc-populate-prefix/src/hwloc-populate-stamp/extract-hwloc-populate.cmake
+source_dir=/home/beakbreak/Desktop/GSoC_HPX_test/build/_deps/hwloc-src
+work_dir=/home/beakbreak/Desktop/GSoC_HPX_test/build/_deps
+url(s)=https://download.open-mpi.org/release/hwloc/v2.9/hwloc-2.9.3.tar.gz
+hash=
+no_extract=
+
