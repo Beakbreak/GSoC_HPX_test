@@ -1,11 +1,26 @@
+////////////////////////////////////////////////////////////////////////////////
+//  Copyright (c) 2021 Dimitra Karatza
+//
+//  SPDX-License-Identifier: BSL-1.0
+//  Distributed under the Boost Software License, Version 1.0. (See accompanying
+//  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+////////////////////////////////////////////////////////////////////////////////
+
+// Parallel implementation of matrix multiplication
+
 #include <hpx/algorithm.hpp>
 #include <hpx/execution.hpp>
 #include <hpx/init.hpp>
-#include <hpx/program_options.hpp>
+
 #include <cstddef>
 #include <iostream>
+#include <random>
 #include <vector>
 
+std::mt19937 gen;
+
+///////////////////////////////////////////////////////////////////////////////
+//[mul_print_matrix
 void print_matrix(std::vector<int> const& M, std::size_t rows, std::size_t cols,
     char const* message)
 {
@@ -17,7 +32,10 @@ void print_matrix(std::vector<int> const& M, std::size_t rows, std::size_t cols,
         std::cout << "\n";
     }
 }
+//]
 
+///////////////////////////////////////////////////////////////////////////////
+//[mul_hpx_main
 int hpx_main(hpx::program_options::variables_map& vm)
 {
     using element_type = int;
@@ -35,42 +53,45 @@ int hpx_main(hpx::program_options::variables_map& vm)
     std::vector<int> B(rowsB * colsB);
     std::vector<int> R(rowsR * colsR);
 
-    // Prompt user to enter values for matrix A
-    std::cout << "Enter elements of matrix A (" << rowsA << "x" << colsA << "):" << std::endl;
-    for (std::size_t i = 0; i < rowsA; ++i) {
-        for (std::size_t j = 0; j < colsA; ++j) {
-            std::cout << "A[" << i << "][" << j << "]: ";
-            std::cin >> A[i * colsA + j];
-        }
-    }
+    // Define seed
+    unsigned int seed = std::random_device{}();
+    if (vm.count("seed"))
+        seed = vm["seed"].as<unsigned int>();
 
-    // Prompt user to enter values for matrix B
-    std::cout << "Enter elements of matrix B (" << rowsB << "x" << colsB << "):" << std::endl;
-    for (std::size_t i = 0; i < rowsB; ++i) {
-        for (std::size_t j = 0; j < colsB; ++j) {
-            std::cout << "B[" << i << "][" << j << "]: ";
-            std::cin >> B[i * colsB + j];
-        }
-    }
+    gen.seed(seed);
+    std::cout << "using seed: " << seed << std::endl;
+
+    // Define range of values
+    int const lower = vm["l"].as<int>();
+    int const upper = vm["u"].as<int>();
+
+    // Matrices have random values in the range [lower, upper]
+    std::uniform_int_distribution<element_type> dis(lower, upper);
+    auto generator = std::bind(dis, gen);
+    hpx::ranges::generate(A, generator);
+    hpx::ranges::generate(B, generator);
 
     // Perform matrix multiplication
-    for (std::size_t i = 0; i < rowsA; ++i) {
-        for (std::size_t j = 0; j < colsB; ++j) {
+    hpx::experimental::for_loop(hpx::execution::par, 0, rowsA, [&](auto i) {
+        hpx::experimental::for_loop(0, colsB, [&](auto j) {
             R[i * colsR + j] = 0;
-            for (std::size_t k = 0; k < rowsB; ++k) {
+            hpx::experimental::for_loop(0, rowsB, [&](auto k) {
                 R[i * colsR + j] += A[i * colsA + k] * B[k * colsB + j];
-            }
-        }
-    }
+            });
+        });
+    });
 
     // Print all 3 matrices
     print_matrix(A, rowsA, colsA, "A");
     print_matrix(B, rowsB, colsB, "B");
     print_matrix(R, rowsR, colsR, "R");
 
-    return hpx::finalize();
+    return hpx::local::finalize();
 }
+//]
 
+///////////////////////////////////////////////////////////////////////////////
+//[mul_main
 int main(int argc, char* argv[])
 {
     using namespace hpx::program_options;
@@ -97,8 +118,9 @@ int main(int argc, char* argv[])
         hpx::program_options::value<int>()->default_value(10),
         "Upper limit of range of values");
     // clang-format on
-    hpx::init_params init_args;
+    hpx::local::init_params init_args;
     init_args.desc_cmdline = cmdline;
 
-    return hpx::init(argc, argv, init_args);
+    return hpx::local::init(hpx_main, argc, argv, init_args);
 }
+//]
